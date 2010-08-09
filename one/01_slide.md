@@ -1,26 +1,39 @@
-!SLIDE 
-# Refactoring for fun and profit #
+!SLIDE bullets incremental
+# War Stories from a huge refactoring #
+* (for fun and profit)
 
-!SLIDE
+!SLIDE center
 # Chris and Tim
-# @thechrisoshow @misterim
-
+# @thechrisoshow @mistertim
+![](HPK-logo.gif)
 
 !SLIDE bullets incremental
 # Programming is fun!
-* Until it's not
-* Let's make it fun again!
+* Even when we're wasting time, we're doing work-related stuff:
+* ![Reddit](reddit.png)
+* ![LRUG](elrug.jpg)
+
+!SLIDE bullets incremental
+# This enthusiasm should infect our work
+* And it does, until Entropy strikes
+* Lets make it fun again
+* For both our sanity and productivity
 
 !SLIDE 
 # One teams war story #
 
-!SLIDE 
+!SLIDE center
 # Creativenvironment #
+![](crenv_dashboard.jpg)
 
-!SLIDE 
+!SLIDE center
+# Design was evolutionary
+* Inconsistent approach to abstraction
+* Numerous developers over the years bringing their own ideas about how it should work
+
+!SLIDE bullets incremental
 # The Scheduler #
-# (aka The Black Hole of Doom)
-
+* (aka The Black Hole of Doom)
 
 !SLIDE small
     @@@ ruby
@@ -46,12 +59,110 @@
       end
     end
 
+!SLIDE smaller
+    @@@ruby
+    it "should create a new job scheduling for the uncanonical task, 
+    removing it from its previous job scheduling. the new job 
+    scheduling should have the same parent as the previous." do
+      job_scheduling = JobScheduling.create(:job => @job)
+      task_scheduler = TaskScheduler.new(@bucket, true, job_scheduling)
+      task_2 = make_task_for_user(@user, :name => "foobar", :estimated_duration => 1.hour, :job => @job)
+      task_scheduling, task_scheduling_2 = *task_scheduler.schedule_tasks([@task, task_2])
+      task_scheduling.job_scheduling.should == job_scheduling
+      task_scheduling_2.job_scheduling.should == job_scheduling
+      job_scheduling.reload.save
+      job_scheduling.should be_canonical 
+      job_scheduling.should be_current_canonical
 
-!SLIDE 
-# What did we need to change, how did we change it? #
+      task_3 = make_task_for_user(@user, :name => "foo", :estimated_duration => 1.hour, :job => @job)
+      job_scheduling_2 = JobScheduling.create(:job => @job)
+      task_scheduler_2 = TaskScheduler.new(@bucket, true, job_scheduling_2)
+      task_scheduling_3 = task_scheduler_2.schedule_task(task_3, :on => Date.tomorrow)
+      job_scheduling_2.save
+      job_scheduling_2.should be_canonical
+      job_scheduling_2.reload.should be_current_canonical
+      job_scheduling_2.ancestors.should include(job_scheduling)
+      job_scheduling.reload.should be_canonical
+      task_scheduling.make_uncanonical!
+      job_scheduling.reload.task_schedulings.should_not include(task_scheduling)
+      job_scheduling.should be_canonical
+      task_scheduling.reload.job_scheduling.should_not be_canonical
+      job_scheduling_2.reload.should be_canonical
+      job_scheduling_2.ancestors.should_not include(task_scheduling.job_scheduling)
+      job_scheduling_2.ancestors.should include(task_scheduling_2.job_scheduling)
+    end
+
+!SLIDE bullets incremental
+# What did we need to change and how did we change it?
+* All of this sucks if you're a developer
+* But the thing, incredibly, still works!
+* It's difficult to persuade managers that there's anything wrong
+
+!SLIDE bullets incremental
+# Except that the app was dog slow
+* This isn't premature optimisation - > 1min page load times
+* with a user base of < 10
+* This is something that managers and users notice!
+
+!SLIDE bullets incremental
+# These two problems are actually the same
+* The hideous inefficiency was caused by the hideous convolutedness
+* Therefore, anything we could do to fix it was an easy sell
+
+!SLIDE bullets incremental
+# All we care about is priority and duration
+* Inserting new tasks is just calculating priority and inserting into a list
+* What were we doing instead?
+
+!SLIDE bullets incremental
+* Storing the start date of every task!
+* Inserting a new task means changing the records of every one that comes after
+* Changing task priority happens often - it has to be quick.
+
+!SLIDE bullets incremental
+# So we rewrite the scheduler
+* Management people sold on the idea
+* We know roughly what we have to do
+
+!SLIDE bullets incremental
+# But...
+* Our tests aren't reliable
+* Scheduler code is incredibly highly coupled to the rest of the system
+* How can we do this without breaking anything?
+
+!SLIDE bullets incremental
+* Cucumber's great for acceptance and regression testing
+* But all our tests are written by us, not users
+* Don't necessarily test requirements
+* Plus we're not sure if they work
+
+!SLIDE bullets incremental
+# Rewrite the features!
+* Didn't take long - Day or so
+* This time, we did it with stakeholders.
+
+!SLIDE bullets incremental
+# We had more than enough requirements documents
+* Spreadsheets
+* Flowcharts
+* Diagrams
+
+!SLIDE bullets incremental
+# These actually aren't so useful
+* Overspecify implementation
+* Didn't specify behaviour, or clients expectations
+
+!SLIDE bullets incremental
+# User stories!
+* Precisely define users expectations
+* Don't specify implementation
+* We are testing the criteria by which we succeed or fail
 
 !SLIDE
-# User stories #
+# Universal language!
+* Technique from DDD
+* Make sure we're all using the same words to refer to the same thing
+* Same throughout the system
 
 !SLIDE
 # Cucumber features #
@@ -92,6 +203,11 @@
       
     Then task: "Existing task" should exist with 
         role_price_in_cents: 10000
+
+!SLIDE
+# Allows us to concentrate on what we're trying to do, not how we're trying to achieve it
+# Pickle handled setup and state assertions
+# Everything else was done through the UI like a real user
    
 !SLIDE
 # Timecop and Chronic
