@@ -113,6 +113,58 @@
 !SLIDE
 # The actual coding #
 
+!SLIDE small
+# Big ole migration #
+
+    @@@ruby
+    #Create completions for all tasks marked as complete
+    execute <<-SQL
+      INSERT INTO completions (task_id, created_at, 
+        updated_at)
+      SELECT id as task_id, completed_at as created_at, 
+        NOW() as updated_at from tasks
+      WHERE completed_at IS NOT NULL
+    SQL
+
+
+!SLIDE small
+# With assertions #
+    @@@ruby
+    assert("All users have a corresponding bucket") do
+      lambda { 
+        count("SELECT count(id) FROM users")
+      }.equal {
+        count("SELECT count(id) FROM buckets where
+         owner_type = 'User'")
+      }
+    end
+
+!SLIDE bullets incremental
+# cap production sync:db
+
+* Kinda like taps in heroku
+
+!SLIDE
+# Ensure the behaviour stays the same
+
+!SLIDE small
+# Wrote very targeted specs
+    @@@ruby
+    before(:each) do
+     Timecop.freeze(Date.parse("2010/07/27"))
+     Estimate.any_instance.stubs(:duration).returns(8.hours)
+     @bucket = Bucket.make
+     @entry = FloatingEntry.make(:position => 5, 
+        :start_on => Date.yesterday, :bucket => @bucket)
+    end
+
+    it "does not take up time before the start date" do
+      @entry.time_on(date("Last friday")).should == 0
+    end
+
+!SLIDE
+# Having excellent cucumber features made the refactoring non-mental #
+
 !SLIDE
 # We're always on the look out for smart people to work with #
 
