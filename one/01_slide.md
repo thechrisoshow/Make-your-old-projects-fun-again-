@@ -19,11 +19,12 @@
 
 !SLIDE 
 # The Scheduler #
+# (aka The Black Hole of Doom)
 
 
-!SLIDE
+!SLIDE small
     @@@ ruby
-    def schedule_task(task, *args) 
+    def schedule_task(task, args) 
       if task.should_be_forced_into_bucket?
         forced_schedule_task(task) 
       elsif args[:immediate] == true
