@@ -15,9 +15,17 @@
 
 !SLIDE bullets incremental
 # This enthusiasm should infect our work
-* And it does, until Entropy strikes
-* Lets make it fun again
-* For both our sanity and productivity
+* And it does, at least to start with
+* Projects have entropy
+* Lets make it fun again - for both our sanity and productivity
+
+!SLIDE bullets incremental
+# We learn lots of new tricks
+* But we typically wait for a new project to try them out
+* Greenfield projects happen infrequently
+
+!SLIDE bullets incremental
+# How can we apply all the cool new things we learn to legacy projects?
 
 !SLIDE 
 # One teams war story #
@@ -26,9 +34,8 @@
 # Creativenvironment #
 ![](crenv_dashboard.jpg)
 
-!SLIDE center
+!SLIDE bullets incremental
 # Design was evolutionary
-* Inconsistent approach to abstraction
 * Numerous developers over the years bringing their own ideas about how it should work
 
 !SLIDE bullets incremental
@@ -100,9 +107,10 @@
 
 !SLIDE bullets incremental
 # Except that the app was dog slow
-* This isn't premature optimisation - > 1min page load times
+* This isn't premature optimisation:> 1min page load times
 * with a user base of < 10
-* This is something that managers and users notice!
+* (To be fair, this was only on one page)
+* But this is something that managers and users notice!
 
 !SLIDE bullets incremental
 # These two problems are actually the same
@@ -115,7 +123,7 @@
 * What were we doing instead?
 
 !SLIDE bullets incremental
-* Storing the start date of every task!
+# Storing the start date of every task!
 * Inserting a new task means changing the records of every one that comes after
 * Changing task priority happens often - it has to be quick.
 
@@ -131,7 +139,8 @@
 * How can we do this without breaking anything?
 
 !SLIDE bullets incremental
-* Cucumber's great for acceptance and regression testing
+# Cucumber
+* it's great for acceptance and regression testing
 * But all our tests are written by us, not users
 * Don't necessarily test requirements
 * Plus we're not sure if they work
@@ -158,14 +167,14 @@
 * Don't specify implementation
 * We are testing the criteria by which we succeed or fail
 
-!SLIDE
+!SLIDE bullets incremental
 # Universal language!
 * Technique from DDD
 * Make sure we're all using the same words to refer to the same thing
 * Same throughout the system
 
 !SLIDE
-# Cucumber features #
+# Cucumber, properly this time
 
 !SLIDE bullets incremental
 # envjs is amazing
@@ -204,10 +213,10 @@
     Then task: "Existing task" should exist with 
         role_price_in_cents: 10000
 
-!SLIDE
-# Allows us to concentrate on what we're trying to do, not how we're trying to achieve it
-# Pickle handled setup and state assertions
-# Everything else was done through the UI like a real user
+!SLIDE bullets incremental
+* Allows us to concentrate on what we're trying to do, not how we're trying to achieve it
+* Pickle handled setup and state assertions
+* Everything else was done through the UI like a real user
    
 !SLIDE
 # Timecop and Chronic
@@ -223,11 +232,27 @@
       Timecop.freeze(Chronic.parse("in #{s}"))
     end
 
-!SLIDE
-# Planning the refactoring #
+!SLIDE bullets incremental
+# We've now got our safety net
+* But where do we start?
+* Dealing with massive coupling - we're going to touch a lot of the system.
+* We need some sort of plan
 
-!SLIDE
-# The actual coding #
+!SLIDE bullets incremental
+# This isn't BDUF
+* We've already been using the app for ages
+* No UML, Suits, or Thinkpads
+
+!SLIDE bullets incremental
+# One rough schema diagram
+* Takes time in the order of hours, not weeks
+* We're not precious about it - just as with code
+* A map for our refactoring adventures
+
+!SLIDE bullets incremental
+# Actually getting on with it, finally
+* Ruthlessly deleted dead code and duplication
+* We did have to add some new code, however:
 
 !SLIDE small
 # Big ole migration #
@@ -263,8 +288,14 @@
 !SLIDE
 # Ensure the behaviour stays the same
 
+!SLIDE bullets incremental
+# Specs
+* Test each unit, rather than the whole system
+* Minimise setup
+* Enforce contracts between classes
+
 !SLIDE small
-# Wrote very targeted specs
+# Use Mocha to get rid of expensive setup and increase isolation
     @@@ruby
     before(:each) do
      Timecop.freeze(Date.parse("2010/07/27"))
@@ -278,9 +309,27 @@
       @entry.time_on(date("Last friday")).should == 0
     end
 
-!SLIDE
-# Having excellent cucumber features made the refactoring non-mental #
+!SLIDE smaller
+# Use invariants to make sure you're testing the right thing
+    @@@ruby
+    it "won't include tasks whose start date is after the end date" do
+      tuesday = date("Next Tuesday")
+      @bucket.tasks_until_date(tuesday).should_not be_empty
+      later_task = @bucket.tasks_until_date(tuesday).first
+      later_task.start_on = date("Next Wednesday")
+      later_task.save
+      @bucket.tasks_until_date(tuesday).should_not \
+        include(later_task)
+    end
 
-!SLIDE
-# We're always on the look out for smart people to work with #
+!SLIDE bullets incremental
+# The rest of it was easy!
+* Because our specs described the interface of our model classes, implementing them was almost a formality
+* Only implemented the minimum to fulfil the interface, so code was very DRY
+* Having decent cucumber coverage prevented regression
 
+!SLIDE bullets 
+# Thanks
+* Questions?
+* We're always on the lookout for smart people to work with
+* Find us in the pub, or at {chris|tim}@harmonypark.net
