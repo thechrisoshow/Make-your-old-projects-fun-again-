@@ -35,12 +35,12 @@
 ![](crenv_dashboard.jpg)
 
 !SLIDE bullets incremental
-# Design was evolutionary
-* Numerous developers over the years bringing their own ideas about how it should work
-
-!SLIDE bullets incremental
 # The Scheduler #
 * (aka The Black Hole of Doom)
+
+!SLIDE bullets incremental
+# Design was evolutionary
+* Numerous developers over the years bringing their own ideas about how it should work
 
 !SLIDE small
     @@@ ruby
